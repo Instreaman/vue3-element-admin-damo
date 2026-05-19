@@ -126,6 +126,8 @@ const queryParams = reactive<OrderQueryParams>({
 
 // 订单表格数据列表
 const orderList = ref<OrderItem[]>();
+// 查询表单
+const queryFormRef = ref();
 /**
  * 加载订单列表数据
  */
@@ -155,7 +157,7 @@ function handleQuery(): void {
  * 重置查询条件
  */
 function resetQuery(): void {
-  // queryFormRef.value?.resetFields();
+  queryFormRef.value?.resetFields();
 }
 
 /**
