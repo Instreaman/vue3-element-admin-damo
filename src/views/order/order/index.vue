@@ -169,17 +169,17 @@ function handleResetQuery(): void {
 }
 
 // 删除一行记录 和 批量删除 功能
-const ids = ref<number[]>([]); // 用于保存表格 复选框组件 的选中记录的ids 数组
+const ids = ref<string[]>([]); // 用于保存表格 复选框组件 的选中记录的ids 数组
 
 // 行复选框选中
-function handleSelectionChange(selection: any): void {
-  ids.value = selection.map((item: any) => item.id);
+function handleSelectionChange(selection: OrderItem[]): void {
+  ids.value = selection.map((item) => item.id ?? "");
 }
 
 // 删除订单
-function handleDelete(tempId?: number): void {
+function handleDelete(tempId?: string): void {
   // tempId 有传值 删除1条记录  没有传值 批量删除ids
-  const tempIds = tempId ? String(tempId) : ids.value.join(",");
+  const tempIds = tempId ? tempId : ids.value.filter(Boolean).join(",");
   if (!tempIds) {
     ElMessage.warning("请勾选删除项");
     return;
@@ -322,5 +322,3 @@ onMounted(() => {
   handleQuery();
 });
 </script>
-
-<style lang="sass"></style>

@@ -188,17 +188,17 @@ function handleResetQuery(): void {
 }
 
 // 删除一行记录 和 批量删除 功能
-const ids = ref<number[]>([]); // 用于保存表格 复选框组件 的选中记录的ids 数组
+const ids = ref<string[]>([]); // 用于保存表格 复选框组件 的选中记录的ids 数组
 
 // 行复选框选中
-function handleSelectionChange(selection: any): void {
-  ids.value = selection.map((item: any) => item.id);
+function handleSelectionChange(selection: TrackItem[]): void {
+  ids.value = selection.map((item) => item.id ?? "");
 }
 
 // 删除订单跟踪
-function handleDelete(tempId?: number): void {
+function handleDelete(tempId?: string): void {
   // tempId 有传值 删除1条记录  没有传值 批量删除ids
-  const tempIds = tempId ? String(tempId) : ids.value.join(",");
+  const tempIds = tempId ? tempId : ids.value.filter(Boolean).join(",");
   if (!tempIds) {
     ElMessage.warning("请勾选删除项");
     return;
@@ -240,8 +240,16 @@ const dialogState = reactive({
   visible: false, // 弹出窗口 false ： 默认为隐藏
 });
 
+const initialForm = (): TrackForm => ({
+  id: undefined,
+  trackingNo: undefined,
+  carrier: undefined,
+  status: undefined,
+  updateTime: undefined,
+});
+
 // 订单跟踪的表单对象
-const formData = reactive<TrackForm>({});
+const formData = reactive<TrackForm>(initialForm());
 // 订单跟踪表单的校验规则
 const rules = reactive({
   trackingNo: [{ required: true, message: "请输入运单号", trigger: "blur" }],
@@ -273,14 +281,7 @@ function resetForm(): void {
   // 2.重置trackFormRef 表单所有校验
   trackFormRef.value?.clearValidate();
 
-  // 3. 设置 清空业务字段
-  formData.id = undefined;
-  formData.trackingNo = undefined;
-  formData.carrier = undefined;
-  formData.status = undefined;
-  formData.updateTime = undefined;
-
-  // 4. 设置[下拉列表\复选框\单选按钮组] 的默认值
+  Object.assign(formData, initialForm());
 }
 
 /**
@@ -342,5 +343,3 @@ onMounted(() => {
   handleQuery();
 });
 </script>
-
-<style lang="sass"></style>
