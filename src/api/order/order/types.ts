@@ -7,36 +7,82 @@ import type { BaseQueryParams } from "@/api/common";
 
 /** Order 订单分页查询参数 - 分页查询*/
 export interface OrderQueryParams extends BaseQueryParams {
-  /** 搜索关键字 */
-  name?: string;
+  /** 订单编号 */
+  orderNo?: string;
+  /** 门店名称 */
+  storeName?: string;
+  /** 订单种类 */
+  orderType?: string;
+  /** 品类 */
+  category?: string;
+  /** 净重 */
+  netWeight?: string;
+  /** 始发地 */
+  origin?: string;
+  /** 目的地 */
+  destination?: string;
+  /** 账号 */
+  account?: string;
+  /** 顾客姓名 */
+  customerName?: string;
+  /** 审核回复 */
+  auditReply?: string;
+  /** 审核状态 */
+  auditStatus?: string;
 }
 
 /** 订单分页对象 - 列表查询 */
 export interface OrderItem {
   /** 订单ID */
   id?: string;
-  /** 订单编码 */
-  code?: string;
-  /** 订单名称 */
-  name?: string;
-  /** 创建时间 */
-  createTime?: Date;
-  /** 修改时间 */
-  updateTime?: Date;
+  /** 订单编号 */
+  orderNo?: string;
+  /** 门店名称 */
+  storeName?: string;
+  /** 订单种类 */
+  orderType?: string;
+  /** 品类 */
+  category?: string;
+  /** 净重 */
+  netWeight?: string;
+  /** 始发地 */
+  origin?: string;
+  /** 目的地 */
+  destination?: string;
+  /** 账号 */
+  account?: string;
+  /** 顾客姓名 */
+  customerName?: string;
+  /** 审核回复 */
+  auditReply?: string;
+  /** 审核状态 */
+  auditStatus?: string;
 }
 
 /** 订单表单对象 - 新增/修改 */
 export interface OrderForm {
-  /** 角色ID */
+  /** 订单ID */
   id?: string;
-  /** 订单编码 */
-  code?: string;
-  /** 订单名称 */
-  name?: string;
-  /** 创建时间 */
-  createTime?: Date;
-  /** 修改时间 */
-  updateTime?: Date;
-  /** 自定义数据权限部门ID列表(当dataScope=5时有效) */
-  // deptIds?: string[];
+  /** 订单编号 */
+  orderNo?: string;
+  /** 门店名称 */
+  storeName?: string;
+  /** 订单种类 */
+  orderType?: string;
+  /** 品类 */
+  category?: string;
+  /** 净重 */
+  netWeight?: string;
+  /** 始发地 */
+  origin?: string;
+  /** 目的地 */
+  destination?: string;
+  /** 账号 */
+  account?: string;
+  /** 顾客姓名 */
+  customerName?: string;
+  /** 审核回复 */
+  auditReply?: string;
+  /** 审核状态 */
+  auditStatus?: string;
 }
