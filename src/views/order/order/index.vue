@@ -31,6 +31,7 @@
 import OrderAPI from "@/api/order/order";
 import type { IObject } from "@/components/CURD/types";
 import usePage from "@/components/CURD/usePage";
+import { useRouter } from "vue-router";
 import contentConfig from "./config/content";
 import modalConfig from "./config/modal";
 import searchConfig from "./config/search";
@@ -48,6 +49,8 @@ const {
   handleSearchClick,
   handleFilterChange,
 } = usePage();
+
+const router = useRouter();
 
 function resolveStatusType(status?: string): "success" | "warning" | "danger" | "info" {
   if (status === "已通过") return "success";
@@ -72,6 +75,15 @@ function handleAdd(): void {
 }
 
 const handleOperateClick = (data: IObject) => {
+  if (data.name === "track") {
+    const orderNo = data.row?.orderNo;
+    if (!orderNo) {
+      ElMessage.warning("订单编号为空，无法查看物流");
+      return;
+    }
+    router.push({ path: "/order/track", query: { orderNo } });
+    return;
+  }
   if (data.name === "edit") {
     setModalMode("edit");
     handleEditClick(data.row, async () => OrderAPI.getFormData(data.row.id));

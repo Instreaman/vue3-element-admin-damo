@@ -2,19 +2,19 @@
   <div class="page-container">
     <el-card class="page-search" shadow="never">
       <el-form ref="queryFormRef" :model="queryParams" :inline="true">
-        <el-form-item prop="trackingNo" label="运单号">
+        <el-form-item prop="trackingNo" label="订单编号">
           <el-input
             v-model="queryParams.trackingNo"
-            placeholder="运单号"
+            placeholder="订单编号"
             clearable
             @keyup.enter="handleQuery"
           />
         </el-form-item>
 
-        <el-form-item prop="carrier" label="承运商">
+        <el-form-item prop="carrier" label="门店名称">
           <el-input
             v-model="queryParams.carrier"
-            placeholder="承运商"
+            placeholder="门店名称"
             clearable
             @keyup.enter="handleQuery"
           />
@@ -54,12 +54,15 @@
             <el-card shadow="hover">
               <div class="track-card__title">{{ item.status || "状态未知" }}</div>
               <div class="track-card__line">物流信息：{{ item.carrier || "暂无" }}</div>
-              <div class="track-card__line">运单号：{{ item.trackingNo || "-" }}</div>
+              <div class="track-card__line">订单编号：{{ item.trackingNo || "-" }}</div>
               <div class="track-card__line">操作员：系统</div>
             </el-card>
           </el-timeline-item>
         </el-timeline>
-        <el-empty v-else description="暂无跟踪记录" />
+        <el-empty
+          v-else
+          :description="queryParams.trackingNo ? '暂无跟踪记录' : '请输入订单编号查询物流轨迹'"
+        />
       </div>
       <!-- 分页组件 total、page、limit、@pagination分页事件 - 调用分页查询方法-->
       <pagination
@@ -83,7 +86,7 @@
           <el-input v-model="logForm.status" placeholder="请输入状态" />
         </el-form-item>
 
-        <el-form-item label="描述" prop="description">
+        <el-form-item label="物流描述" prop="description">
           <el-input
             v-model="logForm.description"
             type="textarea"
@@ -115,6 +118,7 @@
 import TrackAPI from "@/api/order/track";
 // 引入 订单跟踪模块 数据封装对象
 import { TrackItem, TrackQueryParams, TrackForm } from "@/api/order/track";
+import { useRoute } from "vue-router";
 
 // 表格组件加载数据动态特效开关
 const loading = ref(false);
@@ -126,13 +130,18 @@ const queryParams = reactive<TrackQueryParams>({
   pageSize: 10,
 });
 
+const route = useRoute();
+
 // 订单跟踪数据列表
 const trackList = ref<TrackItem[]>();
 // 查询表单
 const queryFormRef = ref();
 const timelineList = computed(() => {
   const list = trackList.value ?? [];
-  return [...list].sort((a, b) => toTimeValue(b.updateTime) - toTimeValue(a.updateTime));
+  if (!queryParams.trackingNo) return [];
+  return [...list]
+    .filter((item) => item.trackingNo === queryParams.trackingNo)
+    .sort((a, b) => toTimeValue(b.updateTime) - toTimeValue(a.updateTime));
 });
 
 function toTimeValue(value?: Date | string): number {
@@ -268,7 +277,7 @@ async function handleCreateClick(): Promise<void> {
 // 提交订单跟踪表单
 async function handleSubmit(): Promise<void> {
   if (!queryParams.trackingNo) {
-    ElMessage.warning("请先输入运单号后再新增日志");
+    ElMessage.warning("请先输入订单编号后再新增日志");
     return;
   }
 
@@ -298,6 +307,24 @@ async function handleSubmit(): Promise<void> {
 
 // 组件挂载后 重置查询条件为第一页 并且 加载订单跟踪列表数据
 onMounted(() => {
-  handleQuery();
+  syncOrderNoFromRoute();
+  if (!queryParams.trackingNo) {
+    handleQuery();
+  }
 });
+
+watch(
+  () => route.query.orderNo,
+  () => {
+    syncOrderNoFromRoute();
+  }
+);
+
+function syncOrderNoFromRoute(): void {
+  const orderNo = route.query.orderNo;
+  if (typeof orderNo === "string" && orderNo) {
+    queryParams.trackingNo = orderNo;
+    handleQuery();
+  }
+}
 </script>

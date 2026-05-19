@@ -50,9 +50,17 @@ const contentConfig: IContentConfig<OrderQueryParams, OrderItem> & {
       label: "操作",
       align: "center",
       fixed: "right",
-      width: 200,
+      width: 260,
       templet: "tool",
-      operat: ["edit", "delete"],
+      operat: [
+        {
+          name: "track",
+          text: "查看物流",
+          attrs: { icon: "Position", type: "primary", link: true },
+        },
+        "edit",
+        "delete",
+      ],
     },
   ],
 };

@@ -56,59 +56,89 @@ export default defineMock([
   {
     url: "tracks",
     method: ["GET"],
-    body: {
-      code: "00000",
-      data: {
-        list: [
-          {
-            id: "1",
-            trackingNo: "YT20240519001",
-            carrier: "顺丰速运",
-            status: "运输中",
-            updateTime: "2024-05-19 10:12:34",
-          },
-          {
-            id: "2",
-            trackingNo: "YT20240519002",
-            carrier: "中通快递",
-            status: "已签收",
-            updateTime: "2024-05-19 11:08:10",
-          },
-          {
-            id: "3",
-            trackingNo: "YT20240519003",
-            carrier: "圆通快递",
-            status: "待揽收",
-            updateTime: "2024-05-19 12:45:20",
-          },
-        ],
-        total: 3,
-      },
-      msg: "一切ok",
+    body: ({ query }) => {
+      const list = trackList.filter((item) => {
+        if (query?.trackingNo && item.trackingNo !== query.trackingNo) return false;
+        if (query?.status && !item.status?.includes(query.status)) return false;
+        if (query?.carrier && !item.carrier?.includes(query.carrier)) return false;
+        return true;
+      });
+
+      return {
+        code: "00000",
+        data: {
+          list,
+          total: list.length,
+        },
+        msg: "一切ok",
+      };
     },
   },
 ]);
 
-const trackMap: Record<string, any> = {
-  1: {
+const trackList = [
+  {
     id: "1",
-    trackingNo: "YT20240519001",
-    carrier: "顺丰速运",
+    trackingNo: "NO20240519001",
+    carrier: "快件已揽收，正在分拣",
+    status: "已揽收",
+    updateTime: "2024-05-19 08:12:34",
+  },
+  {
+    id: "2",
+    trackingNo: "NO20240519001",
+    carrier: "快件已到达【北京转运中心】",
     status: "运输中",
     updateTime: "2024-05-19 10:12:34",
   },
-  2: {
-    id: "2",
-    trackingNo: "YT20240519002",
-    carrier: "中通快递",
-    status: "已签收",
-    updateTime: "2024-05-19 11:08:10",
-  },
-  3: {
+  {
     id: "3",
-    trackingNo: "YT20240519003",
-    carrier: "圆通快递",
-    status: "待揽收",
-    updateTime: "2024-05-19 12:45:20",
+    trackingNo: "NO20240519001",
+    carrier: "快件已发往【上海转运中心】",
+    status: "运输中",
+    updateTime: "2024-05-19 14:22:10",
   },
-};
+  {
+    id: "4",
+    trackingNo: "NO20240519002",
+    carrier: "快件已揽收，等待揽运",
+    status: "已揽收",
+    updateTime: "2024-05-19 09:05:18",
+  },
+  {
+    id: "5",
+    trackingNo: "NO20240519002",
+    carrier: "快件已到达【南京中转仓】",
+    status: "运输中",
+    updateTime: "2024-05-19 12:35:40",
+  },
+  {
+    id: "6",
+    trackingNo: "NO20240519002",
+    carrier: "快件已签收，感谢使用",
+    status: "已签收",
+    updateTime: "2024-05-19 18:08:10",
+  },
+  {
+    id: "7",
+    trackingNo: "NO20240519003",
+    carrier: "快件已揽收，等待转运",
+    status: "已揽收",
+    updateTime: "2024-05-19 07:45:20",
+  },
+  {
+    id: "8",
+    trackingNo: "NO20240519003",
+    carrier: "快件运输异常，请联系网点",
+    status: "异常",
+    updateTime: "2024-05-19 15:10:55",
+  },
+];
+
+const trackMap: Record<string, any> = trackList.reduce(
+  (acc, item) => {
+    acc[item.id] = item;
+    return acc;
+  },
+  {} as Record<string, any>
+);
