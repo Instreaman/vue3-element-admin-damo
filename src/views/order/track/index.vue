@@ -38,56 +38,29 @@
     <el-card class="page-content" shadow="never">
       <div class="page-toolbar">
         <div class="page-toolbar__left">
-          <el-button type="success" icon="plus" @click="handleCreateClick()">新增</el-button>
-          <el-button
-            type="danger"
-            :disabled="ids.length === 0"
-            icon="delete"
-            @click="handleBatchDelete()"
-          >
-            批量删除
-          </el-button>
+          <el-button type="success" icon="plus" @click="handleCreateClick()">新增日志</el-button>
+          <el-button icon="refresh" @click="handleQuery">刷新</el-button>
         </div>
       </div>
-      <el-table
-        v-loading="loading"
-        :data="trackList"
-        highlight-current-row
-        border
-        @selection-change="handleSelectionChange"
-      >
-        <!-- 复选框 -->
-        <el-table-column type="selection" width="55" align="center" />
-        <!-- 订单跟踪业务字段 -->
-        <el-table-column label="运单号" prop="trackingNo" min-width="180" />
-        <el-table-column label="承运商" prop="carrier" min-width="120" />
-        <el-table-column label="当前状态" prop="status" min-width="120" />
-        <!-- 系统字段 -->
-        <el-table-column label="更新时间" prop="updateTime" width="160" />
-
-        <el-table-column fixed="right" label="操作" width="220">
-          <template #default="scope">
-            <el-button
-              type="primary"
-              size="small"
-              link
-              icon="edit"
-              @click="handleEditClick(scope.row.id)"
-            >
-              编辑
-            </el-button>
-            <el-button
-              type="danger"
-              size="small"
-              link
-              icon="delete"
-              @click="handleDelete(scope.row.id)"
-            >
-              删除
-            </el-button>
-          </template>
-        </el-table-column>
-      </el-table>
+      <div v-loading="loading" class="track-timeline">
+        <el-timeline v-if="timelineList.length > 0">
+          <el-timeline-item
+            v-for="item in timelineList"
+            :key="item.id"
+            :timestamp="formatTime(item.updateTime)"
+            :type="resolveNodeType(item.status)"
+            placement="top"
+          >
+            <el-card shadow="hover">
+              <div class="track-card__title">{{ item.status || "状态未知" }}</div>
+              <div class="track-card__line">物流信息：{{ item.carrier || "暂无" }}</div>
+              <div class="track-card__line">运单号：{{ item.trackingNo || "-" }}</div>
+              <div class="track-card__line">操作员：系统</div>
+            </el-card>
+          </el-timeline-item>
+        </el-timeline>
+        <el-empty v-else description="暂无跟踪记录" />
+      </div>
       <!-- 分页组件 total、page、limit、@pagination分页事件 - 调用分页查询方法-->
       <pagination
         v-if="total > 0"
@@ -98,24 +71,34 @@
       />
     </el-card>
 
-    <!-- 订单跟踪表单弹窗 -->
+    <!-- 新增跟踪日志弹窗 -->
     <el-dialog
       v-model="dialogState.visible"
       :title="dialogState.title"
       width="600px"
       @close="closeDialog"
     >
-      <el-form ref="trackFormRef" :model="formData" :rules="rules" label-width="100px">
-        <el-form-item label="运单号" prop="trackingNo">
-          <el-input v-model="formData.trackingNo" placeholder="请输入运单号" />
+      <el-form ref="logFormRef" :model="logForm" :rules="rules" label-width="100px">
+        <el-form-item label="状态" prop="status">
+          <el-input v-model="logForm.status" placeholder="请输入状态" />
         </el-form-item>
 
-        <el-form-item label="承运商" prop="carrier">
-          <el-input v-model="formData.carrier" placeholder="请输入承运商" />
+        <el-form-item label="描述" prop="description">
+          <el-input
+            v-model="logForm.description"
+            type="textarea"
+            :rows="3"
+            placeholder="例如：快件已到达【北京转运中心】"
+          />
         </el-form-item>
 
-        <el-form-item label="当前状态" prop="status">
-          <el-input v-model="formData.status" placeholder="请输入当前状态" />
+        <el-form-item label="时间" prop="updateTime">
+          <el-date-picker
+            v-model="logForm.updateTime"
+            type="datetime"
+            placeholder="请选择时间"
+            style="width: 100%"
+          />
         </el-form-item>
       </el-form>
       <template #footer>
@@ -143,10 +126,36 @@ const queryParams = reactive<TrackQueryParams>({
   pageSize: 10,
 });
 
-// 订单跟踪表格数据列表
+// 订单跟踪数据列表
 const trackList = ref<TrackItem[]>();
 // 查询表单
 const queryFormRef = ref();
+const timelineList = computed(() => {
+  const list = trackList.value ?? [];
+  return [...list].sort((a, b) => toTimeValue(b.updateTime) - toTimeValue(a.updateTime));
+});
+
+function toTimeValue(value?: Date | string): number {
+  if (!value) return 0;
+  if (value instanceof Date) return value.getTime();
+  const time = Date.parse(value);
+  return Number.isNaN(time) ? 0 : time;
+}
+
+function formatTime(value?: Date | string): string {
+  if (!value) return "";
+  if (value instanceof Date) return value.toLocaleString();
+  return String(value);
+}
+
+function resolveNodeType(status?: string): "primary" | "success" | "info" | "warning" | "danger" {
+  if (!status) return "info";
+  if (status.includes("已签收")) return "success";
+  if (status.includes("运输中")) return "primary";
+  if (status.includes("已揽收")) return "info";
+  if (status.includes("异常") || status.includes("问题")) return "danger";
+  return "warning";
+}
 /**
  * 加载订单跟踪列表数据
  */
@@ -187,52 +196,8 @@ function handleResetQuery(): void {
   handleQuery();
 }
 
-// 删除一行记录 和 批量删除 功能
-const ids = ref<string[]>([]); // 用于保存表格 复选框组件 的选中记录的ids 数组
-
-// 行复选框选中
-function handleSelectionChange(selection: TrackItem[]): void {
-  ids.value = selection.map((item) => item.id ?? "");
-}
-
-// 删除订单跟踪
-function handleDelete(tempId?: string): void {
-  // tempId 有传值 删除1条记录  没有传值 批量删除ids
-  const tempIds = tempId ? tempId : ids.value.filter(Boolean).join(",");
-  if (!tempIds) {
-    ElMessage.warning("请勾选删除项");
-    return;
-  }
-
-  ElMessageBox.confirm("确认删除已选中的数据项?", "警告", {
-    confirmButtonText: "确定",
-    cancelButtonText: "取消",
-    type: "warning",
-  }).then(
-    () => {
-      loading.value = true;
-      TrackAPI.deleteByIds(tempIds)
-        .then(() => {
-          ElMessage.success("删除成功");
-          handleResetQuery();
-        })
-        .finally(() => (loading.value = false));
-    },
-    () => {
-      ElMessage.info("已取消删除");
-    }
-  );
-}
-
-/**
- * 批量删除按钮点击事件
- */
-function handleBatchDelete(): void {
-  handleDelete();
-}
-
-// 编辑订单跟踪数据功能：
-const trackFormRef = ref();
+// 新增日志表单
+const logFormRef = ref();
 
 // 弹窗
 const dialogState = reactive({
@@ -248,13 +213,24 @@ const initialForm = (): TrackForm => ({
   updateTime: undefined,
 });
 
-// 订单跟踪的表单对象
-const formData = reactive<TrackForm>(initialForm());
+type LogForm = {
+  status?: string;
+  description?: string;
+  updateTime?: Date;
+};
+
+const initialLogForm = (): LogForm => ({
+  status: undefined,
+  description: undefined,
+  updateTime: undefined,
+});
+
+const logForm = reactive<LogForm>(initialLogForm());
 // 订单跟踪表单的校验规则
 const rules = reactive({
-  trackingNo: [{ required: true, message: "请输入运单号", trigger: "blur" }],
-  carrier: [{ required: true, message: "请输入承运商", trigger: "blur" }],
-  status: [{ required: true, message: "请输入当前状态", trigger: "blur" }],
+  status: [{ required: true, message: "请输入状态", trigger: "blur" }],
+  description: [{ required: true, message: "请输入描述", trigger: "blur" }],
+  updateTime: [{ required: true, message: "请选择时间", trigger: "change" }],
 });
 
 /**
@@ -276,61 +252,43 @@ function closeDialog(): void {
  * 重置表单数据和验证状态
  */
 function resetForm(): void {
-  // 1.重置trackFormRef 表单所有字段
-  trackFormRef.value?.resetFields();
-  // 2.重置trackFormRef 表单所有校验
-  trackFormRef.value?.clearValidate();
-
-  Object.assign(formData, initialForm());
+  logFormRef.value?.resetFields();
+  logFormRef.value?.clearValidate();
+  Object.assign(logForm, initialLogForm());
 }
 
 /**
  * 新增按钮点击事件
  */
 async function handleCreateClick(): Promise<void> {
-  dialogState.title = "新增订单跟踪";
-  openDialog();
-}
-
-/**
- * 编辑按钮点击事件
- * @param id 记录ID
- */
-async function handleEditClick(id: string): Promise<void> {
-  // 1. 设置 弹出窗口 的标题
-  dialogState.title = "修改订单跟踪";
-  // 2. 根据当记录行id 查询要修改的订单跟踪数据
-  const data = await TrackAPI.getFormData(id);
-  // 3.复制 修改的行数据 到 表单对象上
-  Object.assign(formData, data);
-  // 4.打开 弹出窗口
+  dialogState.title = "新增跟踪日志";
   openDialog();
 }
 
 // 提交订单跟踪表单
 async function handleSubmit(): Promise<void> {
-  // 1. 判断表单所有的值是否通过校验
-  const valid = await trackFormRef.value?.validate().then(
+  if (!queryParams.trackingNo) {
+    ElMessage.warning("请先输入运单号后再新增日志");
+    return;
+  }
+
+  const valid = await logFormRef.value?.validate().then(
     () => true,
     () => false
   );
-  // 2. 如果没有通过校验 则直接退出提交事件
   if (!valid) return;
 
-  // 3. 如果通过校验 则运行下面代码
-
-  // 3.1 解构 formData 的数据 赋值到 submitData 中
-  const submitData = { ...formData };
+  const submitData: TrackForm = {
+    ...initialForm(),
+    trackingNo: queryParams.trackingNo,
+    carrier: logForm.description,
+    status: logForm.status,
+    updateTime: logForm.updateTime,
+  };
   loading.value = true;
   try {
-    const id = formData.id;
-    if (id) {
-      await TrackAPI.update(submitData);
-      ElMessage.success("修改成功");
-    } else {
-      await TrackAPI.create(submitData);
-      ElMessage.success("新增成功");
-    }
+    await TrackAPI.create(submitData);
+    ElMessage.success("新增成功");
     closeDialog();
     handleResetQuery();
   } finally {
